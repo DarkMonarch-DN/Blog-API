@@ -29,7 +29,7 @@ export class UserController {
   @Get('/profile')
   async getProfile(
     @Authorized() user: TUserSub,
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<Omit<User, 'password' | 'isActivate'>> {
     return this.userService.getProfile(user);
   }
   @Auth()

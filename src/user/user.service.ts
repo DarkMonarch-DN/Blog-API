@@ -12,7 +12,9 @@ import { User } from '@prisma/client';
 export class UserService {
   constructor(private readonly userRepo: UserRepository) {}
 
-  async getProfile(user: TUserSub): Promise<Omit<User, 'password'>> {
+  async getProfile(
+    user: TUserSub,
+  ): Promise<Omit<User, 'password' | 'isActivate'>> {
     const existingUser = await this.userRepo.findById(user.id);
     if (!existingUser) {
       throw new UnauthorizedException('Не авторизован');

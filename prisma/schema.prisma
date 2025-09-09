@@ -12,13 +12,41 @@ model User {
   name      String
   email     String          @unique
   password  String
+
   role      Role            @default(USER)
+
+  refreshToken RefreshToken?
+
+  isActivate Boolean @default(false)
+  verificationToken VerificationToken?
+
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
   posts     Post[]
   @@map("users")
 }
+
+model VerificationToken {
+  id String @id @default(uuid())
+  token String @unique
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  @@map("verification_token")
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+  token String 
+
+  user User @relation(fields: [userId], references: [id])
+  userId String @unique
+  @@map("refresh_token")
+}
+
 
 model Post {
   id        String          @id @default(uuid())

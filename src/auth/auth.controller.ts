@@ -1,17 +1,23 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TResponse } from 'src/common/types/router.types';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { Auth } from 'src/common/decorators/auth.decorator';
+import { VerificationDto } from './dto/resend-verification.dto';
+import { Authorized } from 'src/common/decorators/authorized.decorator';
+import { TUserSub } from 'src/common/types/user.types';
 
 @Controller('auth')
 export class AuthController {
@@ -21,6 +27,14 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto): Promise<TResponse> {
     return this.authService.register(dto);
+  }
+  @Post('/resend-verification')
+  async resendVerification(@Body() dto: VerificationDto): Promise<TResponse> {
+    return this.authService.resendVerification(dto);
+  }
+  @Get('/verify')
+  async verifyEmail(@Query('token') token: string): Promise<TResponse> {
+    return this.authService.verifyEmail(token);
   }
 
   @Post('/login')
@@ -32,8 +46,20 @@ export class AuthController {
   }
 
   @Auth()
+  @Post('/refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<TResponse> {
+    return this.authService.refresh(req, res);
+  }
+
+  @Auth()
   @Post('/logout')
-  async logout(@Res({ passthrough: true }) res: Response): Promise<TResponse> {
-    return this.authService.logout(res);
+  async logout(
+    @Authorized() user: TUserSub,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<TResponse> {
+    return this.authService.logout(user, res);
   }
 }

@@ -1,80 +1,41 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
-import { UserRepository } from 'src/user/user.repository';
+import { Injectable } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { compare, hash } from 'bcrypt';
 import { TResponse } from 'src/common/types/router.types';
-import * as jwt from 'jsonwebtoken';
-import { ConfigService } from '@nestjs/config';
-import { Response } from 'express';
+import { Response, Request } from 'express';
+import { RegisterService } from './sub-services/register.service';
+import { VerificationDto } from './dto/resend-verification.dto';
+import { LoginService } from './sub-services/login.service';
+import { TUserSub } from 'src/common/types/user.types';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userRepo: UserRepository,
-    private readonly configService: ConfigService,
+    private readonly registerService: RegisterService,
+    private readonly loginService: LoginService,
   ) {}
 
   async register(dto: RegisterDto): Promise<TResponse> {
-    const { name, email, password } = dto;
+    return this.registerService.register(dto);
+  }
 
-    const isExists = await this.userRepo.findByEmail(email);
-    if (isExists) {
-      throw new ConflictException('Пользователь с данным email уже существует');
-    }
-    const hashedPassword = await hash(password, 10);
+  async resendVerification(dto: VerificationDto): Promise<TResponse> {
+    return this.registerService.resendVerification(dto);
+  }
 
-    await this.userRepo.create({
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-    });
-
-    return {
-      success: true,
-      message: 'Регистрация прошла успешно',
-    };
+  async verifyEmail(token: string): Promise<TResponse> {
+    return this.registerService.verifyEmail(token);
   }
 
   async login(dto: LoginDto, res: Response): Promise<TResponse> {
-    const { email, password } = dto;
-
-    const user = await this.userRepo.findByEmail(email);
-    if (!user) {
-      throw new BadRequestException('Неверный логин или пароль');
-    }
-
-    const isPassword = await compare(password, user.password);
-    if (!isPassword) {
-      throw new BadRequestException('Неверный логин или пароль');
-    }
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      this.configService.getOrThrow<string>('JWT_SECRET'),
-      {
-        expiresIn: '7d',
-      },
-    );
-
-    res.cookie('accessToken', token, {
-      httpOnly: true,
-      maxAge: 604800000,
-    });
-    return {
-      success: true,
-      message: `Пользователь ${user.name} успешно вошел в систему`,
-    };
+    return this.loginService.login(dto, res);
   }
 
-  async logout(res: Response): Promise<TResponse> {
-    res.clearCookie('accessToken');
-    return {
-      success: true,
-      message: 'Пользователь успешно вышел из системы',
-    };
+  async refresh(req: Request, res: Response): Promise<TResponse> {
+    return this.loginService.refresh(req, res);
+  }
+
+  async logout(user: TUserSub, res: Response): Promise<TResponse> {
+    return this.loginService.logout(user, res);
   }
 }
