@@ -32,7 +32,11 @@ export class LoginService {
       throw new BadRequestException('Почта не подтверждена');
     }
 
-    await this.refreshRepo.removeByUserId(user.id);
+    const existingToken = await this.refreshRepo.findByUserId(user.id);
+    if (existingToken) {
+      await this.refreshRepo.removeByUserId(user.id);
+    }
+
     const accessToken = jwt.sign(
       { id: user.id, role: user.role },
       this.configService.getOrThrow<string>('JWT_SECRET'),
