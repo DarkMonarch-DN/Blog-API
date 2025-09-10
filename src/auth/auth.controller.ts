@@ -18,6 +18,8 @@ import { Auth } from 'src/common/decorators/auth.decorator';
 import { VerificationDto } from './dto/resend-verification.dto';
 import { Authorized } from 'src/common/decorators/authorized.decorator';
 import { TUserSub } from 'src/common/types/user.types';
+import { ForgotDto } from './dto/forgot-password.dto';
+import { ResetDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -61,5 +63,18 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<TResponse> {
     return this.authService.logout(user, res);
+  }
+
+  @Post('/forgot-password')
+  async forgotPassword(@Body() dto: ForgotDto): Promise<TResponse> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('/reset-password')
+  async resetPassword(
+    @Query('token') token: string,
+    @Body() dto: ResetDto,
+  ): Promise<TResponse> {
+    return this.authService.resetPassword(token, dto);
   }
 }

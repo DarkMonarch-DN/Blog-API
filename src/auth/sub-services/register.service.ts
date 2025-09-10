@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { hash } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { TResponse } from 'src/common/types/router.types';
 import { UserRepository } from 'src/user/user.repository';
 import { RegisterDto } from '../dto/register.dto';
@@ -38,7 +38,7 @@ export class RegisterService {
       password: hashedPassword,
     });
 
-    const verificationToken = v4();
+    const verificationToken = await hash(v4(), 10);
 
     await this.verifyRepo.create({
       token: verificationToken,
@@ -70,7 +70,7 @@ export class RegisterService {
     }
     await this.verifyRepo.removeByUserId(existingUser.id);
 
-    const verificationToken = v4();
+    const verificationToken = await hash(v4(), 10);
 
     await this.verifyRepo.create({
       token: verificationToken,
@@ -93,7 +93,11 @@ export class RegisterService {
 
   async verifyEmail(token: string): Promise<TResponse> {
     const existingToken = await this.verifyRepo.find(token);
-    if (!existingToken || new Date(Date.now()) > existingToken.expiresAt) {
+    if (
+      !existingToken ||
+      new Date(Date.now()) > existingToken.expiresAt ||
+      !(await compare(token, existingToken.token))
+    ) {
       throw new BadRequestException('Данный токен не действителен');
     }
     await this.userRepo.update(existingToken.userId, { isActivate: true });

@@ -20,6 +20,8 @@ model User {
   isActivate Boolean @default(false)
   verificationToken VerificationToken?
 
+  resetToken ResetToken?
+
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
@@ -45,6 +47,16 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id])
   userId String @unique
   @@map("refresh_token")
+}
+
+model ResetToken {
+  id String @id @default(uuid())
+  token String @unique
+
+  expiresAt DateTime
+  user User @relation(fields: [userId], references: [id])
+  userId String @unique
+  @@map("reset_token")
 }
 
 

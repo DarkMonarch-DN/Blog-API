@@ -9,6 +9,8 @@ import { VerifyRepository } from './repository/verify-token.repository';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { LoginService } from './sub-services/login.service';
 import { RefreshRepository } from './repository/refresh-token.repository';
+import { ResetRepository } from './repository/reset-token.repository';
+import { PasswordService } from './sub-services/password.service';
 
 @Module({
   imports: [UserModule, ConfigModule, MailModule, PrismaModule],
@@ -17,8 +19,10 @@ import { RefreshRepository } from './repository/refresh-token.repository';
     AuthService,
     RegisterService,
     LoginService,
+    PasswordService,
     VerifyRepository,
     RefreshRepository,
+    ResetRepository,
   ],
 })
 export class AuthModule {}

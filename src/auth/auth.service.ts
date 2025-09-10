@@ -7,12 +7,16 @@ import { RegisterService } from './sub-services/register.service';
 import { VerificationDto } from './dto/resend-verification.dto';
 import { LoginService } from './sub-services/login.service';
 import { TUserSub } from 'src/common/types/user.types';
+import { ForgotDto } from './dto/forgot-password.dto';
+import { PasswordService } from './sub-services/password.service';
+import { ResetDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly registerService: RegisterService,
     private readonly loginService: LoginService,
+    private readonly passwordService: PasswordService,
   ) {}
 
   async register(dto: RegisterDto): Promise<TResponse> {
@@ -37,5 +41,13 @@ export class AuthService {
 
   async logout(user: TUserSub, res: Response): Promise<TResponse> {
     return this.loginService.logout(user, res);
+  }
+
+  async forgotPassword(dto: ForgotDto): Promise<TResponse> {
+    return this.passwordService.forgotPassword(dto);
+  }
+
+  async resetPassword(token: string, dto: ResetDto): Promise<TResponse> {
+    return this.passwordService.resetPassword(token, dto);
   }
 }
