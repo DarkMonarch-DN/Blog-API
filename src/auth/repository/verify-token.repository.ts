@@ -6,9 +6,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class VerifyRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async find(token: string): Promise<VerificationToken | null> {
+  async findById(id: string): Promise<VerificationToken | null> {
     return this.prismaService.verificationToken.findUnique({
-      where: { token },
+      where: { id },
       include: { user: true },
     });
   }
@@ -21,9 +21,9 @@ export class VerifyRepository {
       data: token,
     });
   }
-  async remove(token: string): Promise<VerificationToken> {
+  async remove(id: string): Promise<VerificationToken> {
     return this.prismaService.verificationToken.delete({
-      where: { token },
+      where: { id },
     });
   }
   async removeByUserId(userId: string): Promise<VerificationToken> {

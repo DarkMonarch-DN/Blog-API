@@ -6,9 +6,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class ResetRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async find(token: string): Promise<ResetToken | null> {
+  async findById(id: string): Promise<ResetToken | null> {
     return this.prismaService.resetToken.findUnique({
-      where: { token },
+      where: { id },
       include: { user: true },
     });
   }

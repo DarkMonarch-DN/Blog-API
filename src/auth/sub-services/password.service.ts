@@ -25,30 +25,28 @@ export class PasswordService {
   async forgotPassword(dto: ForgotDto): Promise<TResponse> {
     const { email } = dto;
     const user = await this.userRepo.findByEmail(email);
-    if (!user) {
-      throw new NotFoundException('Пользователь не найден');
-    }
+    if (user) {
+      const existingToken = await this.resetRepo.findByUserId(user.id);
+      if (existingToken) {
+        await this.resetRepo.removeByUserId(user.id);
+      }
 
-    const existingToken = await this.resetRepo.findByUserId(user.id);
-    if (existingToken) {
-      await this.resetRepo.removeByUserId(user.id);
-    }
+      const resetToken = v4();
+      const newToken = await this.resetRepo.create({
+        token: await hash(resetToken, 10),
+        expiresAt: new Date(Date.now() + 24 * 3600000),
+        userId: user.id,
+      });
 
-    const resetToken = v4();
-    await this.resetRepo.create({
-      token: resetToken,
-      expiresAt: new Date(Date.now() + 24 * 3600000),
-      userId: user.id,
-    });
-
-    await this.mailService.send(
-      email,
-      'Подтвердите смену пароля',
-      `
+      await this.mailService.send(
+        email,
+        'Подтвердите смену пароля',
+        `
         <h1>Пожалуйста, подтвердите смену пароля</h1>
-        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/reset-password?token=${resetToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить ${resetToken}</a>
+        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/reset-password?rid=${newToken.id}&token=${resetToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить ${resetToken}</a>
     `,
-    );
+      );
+    }
 
     return {
       success: true,
@@ -56,13 +54,13 @@ export class PasswordService {
     };
   }
 
-  async resetPassword(token: string, dto: ResetDto) {
+  async resetPassword(resetId: string, token: string, dto: ResetDto) {
     const { password } = dto;
-    const existingToken = await this.resetRepo.find(token);
+    const existingToken = await this.resetRepo.findById(resetId);
     if (
       !existingToken ||
-      new Date(Date.now()) > existingToken.expiresAt ||
-      token !== existingToken.token
+      Date.now() > existingToken.expiresAt.getTime() ||
+      !(await compare(token, existingToken.token))
     ) {
       throw new BadRequestException('Токен не валиден');
     }

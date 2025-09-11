@@ -26,8 +26,8 @@ export class RegisterService {
   async register(dto: RegisterDto): Promise<TResponse> {
     const { name, email, password } = dto;
 
-    const isExists = await this.userRepo.findByEmail(email);
-    if (isExists) {
+    const existingUser = await this.userRepo.findByEmail(email);
+    if (existingUser) {
       throw new ConflictException('Пользователь с данным email уже существует');
     }
     const hashedPassword = await hash(password, 10);
@@ -38,10 +38,10 @@ export class RegisterService {
       password: hashedPassword,
     });
 
-    const verificationToken = await hash(v4(), 10);
+    const verificationToken = v4();
 
-    await this.verifyRepo.create({
-      token: verificationToken,
+    const newToken = await this.verifyRepo.create({
+      token: await hash(verificationToken, 10),
       expiresAt: new Date(Date.now() + 24 * 3600000),
       userId: user.id,
     });
@@ -51,7 +51,7 @@ export class RegisterService {
       'Email Verification',
       `
         <h1>Пожалуйста, подтвердите почту переходом по ссылке</h1>
-        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/verify?token=${verificationToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить </a>
+        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/verify?vid=${newToken.id}&token=${verificationToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить </a>
     `,
     );
 
@@ -62,46 +62,46 @@ export class RegisterService {
   }
   async resendVerification(dto: VerificationDto): Promise<TResponse> {
     const existingUser = await this.userRepo.findByEmail(dto.email);
-    if (!existingUser) {
-      throw new NotFoundException('Пользователь не найден');
-    }
-    if (existingUser.isActivate) {
-      throw new BadRequestException('Пользователь уже подтвердил почту');
-    }
-    await this.verifyRepo.removeByUserId(existingUser.id);
+    if (existingUser) {
+      if (existingUser.isActivate) {
+        throw new BadRequestException('Пользователь уже подтвердил почту');
+      }
+      await this.verifyRepo.removeByUserId(existingUser.id);
 
-    const verificationToken = await hash(v4(), 10);
+      const verificationToken = v4();
 
-    await this.verifyRepo.create({
-      token: verificationToken,
-      expiresAt: new Date(Date.now() + 24 * 3600000),
-      userId: existingUser.id,
-    });
-    await this.mailService.send(
-      dto.email,
-      'Email Verification',
-      `
+      const newToken = await this.verifyRepo.create({
+        token: await hash(verificationToken, 10),
+        expiresAt: new Date(Date.now() + 24 * 3600000),
+        userId: existingUser.id,
+      });
+      await this.mailService.send(
+        dto.email,
+        'Email Verification',
+        `
         <h1>Пожалуйста, подтвердите почту переходом по ссылке</h1>
-        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/verify?token=${verificationToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить </a>
+        <a href="${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/verify?vid=${newToken.id}&token=${verificationToken}" style="text-decoration: none; font-size: 1.4rem; color: teal">Подтвердить ${this.configService.getOrThrow<string>('FRONTEND_URL')}/auth/verify?vid=${newToken.id}&token=${verificationToken}</a>
     `,
-    );
+      );
+    }
+
     return {
       success: true,
       message: 'Письмо с кодом подтверждения отправлено на вашу почту',
     };
   }
 
-  async verifyEmail(token: string): Promise<TResponse> {
-    const existingToken = await this.verifyRepo.find(token);
+  async verifyEmail(vid: string, token: string): Promise<TResponse> {
+    const existingToken = await this.verifyRepo.findById(vid);
     if (
       !existingToken ||
-      new Date(Date.now()) > existingToken.expiresAt ||
+      Date.now() > existingToken.expiresAt.getTime() ||
       !(await compare(token, existingToken.token))
     ) {
       throw new BadRequestException('Данный токен не действителен');
     }
     await this.userRepo.update(existingToken.userId, { isActivate: true });
-    await this.verifyRepo.remove(token);
+    await this.verifyRepo.remove(vid);
     return {
       success: true,
       message: 'Почта успешно подтверждена',

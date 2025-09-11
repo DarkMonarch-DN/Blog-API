@@ -27,8 +27,8 @@ export class AuthService {
     return this.registerService.resendVerification(dto);
   }
 
-  async verifyEmail(token: string): Promise<TResponse> {
-    return this.registerService.verifyEmail(token);
+  async verifyEmail(vid: string, token: string): Promise<TResponse> {
+    return this.registerService.verifyEmail(vid, token);
   }
 
   async login(dto: LoginDto, res: Response): Promise<TResponse> {
@@ -47,7 +47,11 @@ export class AuthService {
     return this.passwordService.forgotPassword(dto);
   }
 
-  async resetPassword(token: string, dto: ResetDto): Promise<TResponse> {
-    return this.passwordService.resetPassword(token, dto);
+  async resetPassword(
+    resetId: string,
+    token: string,
+    dto: ResetDto,
+  ): Promise<TResponse> {
+    return this.passwordService.resetPassword(resetId, token, dto);
   }
 }

@@ -35,8 +35,11 @@ export class AuthController {
     return this.authService.resendVerification(dto);
   }
   @Get('/verify')
-  async verifyEmail(@Query('token') token: string): Promise<TResponse> {
-    return this.authService.verifyEmail(token);
+  async verifyEmail(
+    @Query('vid') vid: string,
+    @Query('token') token: string,
+  ): Promise<TResponse> {
+    return this.authService.verifyEmail(vid, token);
   }
 
   @Post('/login')
@@ -72,9 +75,10 @@ export class AuthController {
 
   @Post('/reset-password')
   async resetPassword(
+    @Query('rid') resetId: string,
     @Query('token') token: string,
     @Body() dto: ResetDto,
   ): Promise<TResponse> {
-    return this.authService.resetPassword(token, dto);
+    return this.authService.resetPassword(resetId, token, dto);
   }
 }
