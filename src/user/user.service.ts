@@ -48,17 +48,10 @@ export class UserService {
   async editProfile(user: TUserSub, dto: UpdateUserDto): Promise<User> {
     const existingUser = await this.userRepo.findById(user.id);
     if (!existingUser) {
-      throw new UnauthorizedException('Пользователь не найден');
+      throw new UnauthorizedException('Пользователь не авторизован');
     }
 
-    if (dto.email) {
-      const foundByEmail = await this.userRepo.findByEmail(dto.email);
-      if (foundByEmail && foundByEmail.id !== user.id) {
-        throw new ConflictException(
-          'Пользователь с данным email уже существует',
-        );
-      }
-    }
+    await this.userRepo.update(user.id, dto);
 
     return this.userRepo.update(user.id, dto);
   }
